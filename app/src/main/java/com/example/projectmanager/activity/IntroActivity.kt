@@ -10,7 +10,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.example.projectmanager.R
 import com.example.projectmanager.databinding.ActivityIntroBinding
 
-class IntroActivity : AppCompatActivity() {
+class IntroActivity : BaseActivity() {
 
     var binding: ActivityIntroBinding? = null
 
