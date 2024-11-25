@@ -6,12 +6,10 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.WindowManager
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.example.projectmanager.R
 import com.example.projectmanager.databinding.ActivitySignInBinding
+import com.example.projectmanager.firebase.FirestoreClass
+import com.example.projectmanager.models.User
 import com.google.firebase.auth.FirebaseAuth
 
 class SignInActivity : BaseActivity() {
@@ -38,6 +36,12 @@ class SignInActivity : BaseActivity() {
         setupActionBar()
     }
 
+    fun signInSuccess(user: User) {
+        hideProgressDialog()
+        startActivity(Intent(this, MainActivity::class.java))
+        finish()
+    }
+
     private fun setupActionBar() {
         setSupportActionBar(binding?.toolbarSignInActivity)
         val actionBar = supportActionBar
@@ -50,7 +54,6 @@ class SignInActivity : BaseActivity() {
             onBackPressed()
         }
     }
-
 
     private fun signInRegisteredUser() {
         val email: String = binding?.etEmail?.text.toString()
@@ -65,9 +68,7 @@ class SignInActivity : BaseActivity() {
                 .addOnCompleteListener(this) { task ->
                     hideProgressDialog()
                     if (task.isSuccessful) {
-                        Log.i("Signin", "signInWithEmail:success")
-                        val user = auth.currentUser
-                        startActivity(Intent(this, MainActivity::class.java))
+                        FirestoreClass().signInUser(this)
                     } else {
                         Toast.makeText(baseContext, "Authentication failed.", Toast.LENGTH_SHORT).show()
                     }
@@ -75,7 +76,6 @@ class SignInActivity : BaseActivity() {
         }
 
     }
-
 
     private fun validateForm(email: String, password: String): Boolean {
         return when {

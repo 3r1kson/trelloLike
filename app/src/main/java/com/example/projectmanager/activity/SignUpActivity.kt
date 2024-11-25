@@ -10,6 +10,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.projectmanager.R
 import com.example.projectmanager.databinding.ActivitySignUpBinding
+import com.example.projectmanager.firebase.FirestoreClass
+import com.example.projectmanager.models.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 
@@ -28,6 +30,17 @@ class SignUpActivity : BaseActivity() {
 
         setupActionBar()
 
+    }
+
+    fun userRegisteredSuccess() {
+        hideProgressDialog()
+        Toast.makeText(
+            this,
+            "You have succesffuly registered",
+            Toast.LENGTH_LONG).show()
+        hideProgressDialog()
+        FirebaseAuth.getInstance().signOut()
+        finish()
     }
 
     private fun setupActionBar() {
@@ -57,19 +70,15 @@ class SignUpActivity : BaseActivity() {
             FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password).addOnCompleteListener(
                 {
                     task ->
-                    hideProgressDialog()
                     if (task.isSuccessful) {
                         val firebaseUser: FirebaseUser = task.result!!.user!!
                         val registeredEmail = firebaseUser.email!!
-                        Toast.makeText(
-                            this,
-                            "$name you have succesffuly registered the email address $registeredEmail",
-                            Toast.LENGTH_LONG).show()
-                        FirebaseAuth.getInstance().signOut()
-                        finish()
+                        val user = User(firebaseUser.uid, name, registeredEmail)
+
+                        FirestoreClass().registerUser(this@SignUpActivity, user)
                     } else {
                         Toast.makeText(
-                            this,
+                            this@SignUpActivity,
                             task.exception!!.message,
                             Toast.LENGTH_SHORT).show()
                     }

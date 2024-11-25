@@ -11,6 +11,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.projectmanager.R
 import com.example.projectmanager.databinding.ActivitySplashBinding
+import com.example.projectmanager.firebase.FirestoreClass
 
 class SplashActivity : AppCompatActivity() {
 
@@ -31,7 +32,15 @@ class SplashActivity : AppCompatActivity() {
         binding?.tvAppName?.setTypeface(typeFace)
 
         Handler().postDelayed({
-            startActivity(Intent(this, IntroActivity::class.java))
+
+            var currentUserID = FirestoreClass().getCurrentUserId()
+
+            if (currentUserID.isNotEmpty()) {
+                startActivity(Intent(this, MainActivity::class.java))
+
+            } else {
+                startActivity(Intent(this, IntroActivity::class.java))
+            }
             finish()
         }, 2500)
     }
