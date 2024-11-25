@@ -10,8 +10,13 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
+            android:name=".activity.MyProfileActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme.NoActionBar"/>
+        <activity
             android:name=".activity.BaseActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".activity.SignInActivity"
             android:exported="false"
@@ -23,8 +28,11 @@
         <activity
             android:name=".activity.IntroActivity"
             android:exported="false"
-            android:theme="@style/AppTheme.NoActionBar" /> <!-- TODO (Step 3: Modify the tag and make it a launcher activity. Which will be called when the app is launched.) -->
-        <!-- START -->
+            android:theme="@style/AppTheme.NoActionBar" />
+        <activity
+            android:name=".activity.MainActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme.NoActionBar" /> <!-- START -->
         <activity
             android:name=".activity.SplashActivity"
             android:exported="true"
@@ -34,8 +42,7 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- END -->
-        <activity android:name=".activity.MainActivity" />
+        </activity>
     </application>
 
 </manifest>
