@@ -1,22 +1,37 @@
 package com.example.projectmanager.activity
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
+import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.projectmanager.R
+import com.example.projectmanager.adapters.BoardsItemAdapter
 import com.example.projectmanager.databinding.ActivityMainBinding
 import com.example.projectmanager.firebase.FirestoreClass
+import com.example.projectmanager.models.Board
 import com.example.projectmanager.models.User
+import com.example.projectmanager.util.Constants
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 
 class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
+
+    companion object {
+        const val MY_PROFILE_REQUEST_CODE: Int = 11
+        const val CREATE_BOARD_REQUEST_CODE: Int = 12
+    }
+
+    private lateinit var mUserName: String
 
     var binding: ActivityMainBinding? = null
 
@@ -31,10 +46,46 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
 
-        setupActionBar()
         binding?.navView?.setNavigationItemSelectedListener(this)
 
-        FirestoreClass().loadUserData(this)
+        var floatingButton = findViewById<FloatingActionButton>(R.id.fab_create_board)
+        floatingButton.setOnClickListener {
+            var intent = Intent(this, CreateBoardActivity::class.java)
+            intent.putExtra(Constants.NAME, mUserName)
+            startActivityForResult(intent, CREATE_BOARD_REQUEST_CODE)
+        }
+
+        setupActionBar()
+        FirestoreClass().loadUserData(this, true)
+    }
+
+    fun populateBoardListToUI(boardsList: ArrayList<Board>) {
+        hideProgressDialog()
+
+        var rvBoardList = findViewById<RecyclerView>(R.id.rv_boards_list)
+        var tvNoBoards = findViewById<TextView>(R.id.tv_no_boards_available)
+
+        if (boardsList.size > 0) {
+            rvBoardList.visibility = View.VISIBLE
+            tvNoBoards.visibility = View.GONE
+
+            rvBoardList.layoutManager = LinearLayoutManager(this)
+            rvBoardList.setHasFixedSize(true)
+
+            val adapter = BoardsItemAdapter(this, boardsList)
+            rvBoardList.adapter = adapter
+
+            adapter.setOnClickListener(object : BoardsItemAdapter.OnClickListener {
+                override fun onClick(position: Int, model: Board) {
+                    var intent = Intent(this@MainActivity, TaskListActivity::class.java)
+                    intent.putExtra(Constants.DOCUMENT_ID, model.documentId)
+                    startActivity(intent)
+                }
+            })
+        } else {
+            rvBoardList.visibility = View.GONE
+            tvNoBoards.visibility = View.VISIBLE
+        }
     }
 
     private fun setupActionBar() {
@@ -63,11 +114,23 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (resultCode == Activity.RESULT_OK && requestCode == MY_PROFILE_REQUEST_CODE) {
+            FirestoreClass().loadUserData(this)
+        } else if (resultCode == Activity.RESULT_OK && requestCode == CREATE_BOARD_REQUEST_CODE) {
+            FirestoreClass().getBoardsList(this)
+        } else {
+            Log.e("Cancelled", "Cancelled")
+        }
+    }
+
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         Log.d("Navigation", "Selected: ${item.title}")
         when(item.itemId) {
             R.id.nav_my_profile -> {
-                startActivity(Intent(this, MyProfileActivity::class.java))
+                startActivityForResult(Intent(this, MyProfileActivity::class.java), MY_PROFILE_REQUEST_CODE)
             }
             R.id.nav_sign_out -> {
                 Log.d("Navigation", "Sign Out selected")
@@ -82,10 +145,12 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
         return true
     }
 
-    fun updateNavigationUserDetails(user: User) {
+    fun updateNavigationUserDetails(user: User, readBoardsList: Boolean) {
         val headerView = binding?.navView?.getHeaderView(0)
         val userImage: ImageView? = headerView?.findViewById(R.id.nav_user_image)
         val userName: TextView? = headerView?.findViewById(R.id.tv_username)
+
+        mUserName = user.name
 
         Glide
             .with(this)
@@ -95,5 +160,10 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             .into(userImage!!)
 
         userName?.text = user.name
+
+        if (readBoardsList) {
+            showProgressDialog(resources.getString(R.string.please_wait))
+            FirestoreClass().getBoardsList(this)
+        }
     }
 }

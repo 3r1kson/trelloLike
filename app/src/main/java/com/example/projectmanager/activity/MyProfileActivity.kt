@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Base64
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
@@ -18,16 +19,17 @@ import com.example.projectmanager.R
 import com.example.projectmanager.databinding.ActivityMyProfileBinding
 import com.example.projectmanager.firebase.FirestoreClass
 import com.example.projectmanager.models.User
+import com.example.projectmanager.util.Constants
+import com.example.projectmanager.util.Constants.PICK_IMAGE_REQUEST_CODE
+import com.example.projectmanager.util.Constants.READ_STORAGE_PERMISSION_CODE
+import com.example.projectmanager.util.Constants.showImageChooser
 import java.io.IOException
 
 class MyProfileActivity : BaseActivity() {
 
-    companion object {
-        private const val READ_STORAGE_PERMISSION_CODE = 1
-        private const val PICK_IMAGE_REQUEST_CODE = 2
-    }
-
     private var mSelectedImageFileUri: Uri? = null
+    private var mProfileImageBase64: Base64? = null
+    private lateinit var mUserDetails: User
 
     var binding: ActivityMyProfileBinding? = null
 
@@ -43,7 +45,7 @@ class MyProfileActivity : BaseActivity() {
 
         binding?.ivProfileUserActivity?.setOnClickListener {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                showImageChooser()
+                showImageChooser(this)
             } else {
                 ActivityCompat.requestPermissions(
                     this,
@@ -51,6 +53,11 @@ class MyProfileActivity : BaseActivity() {
                     READ_STORAGE_PERMISSION_CODE
                 )
             }
+        }
+
+        binding?.btnUpdate?.setOnClickListener {
+            showProgressDialog(resources.getString(R.string.please_wait))
+            updateUserProfileData()
         }
     }
 
@@ -62,16 +69,11 @@ class MyProfileActivity : BaseActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == READ_STORAGE_PERMISSION_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                showImageChooser()
+                Constants.showImageChooser(this)
             } else {
                 Toast.makeText(this, "You denied permission for storage, change it on settings of Android", Toast.LENGTH_LONG).show()
             }
         }
-    }
-
-    fun showImageChooser() {
-        val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        startActivityForResult(galleryIntent, PICK_IMAGE_REQUEST_CODE)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -115,6 +117,8 @@ class MyProfileActivity : BaseActivity() {
         var userEmail: EditText? = findViewById(R.id.et_email)
         var userMobile: EditText? = findViewById(R.id.et_mobile)
 
+        mUserDetails = user
+
         Glide
             .with(this@MyProfileActivity)
             .load(user.image)
@@ -124,8 +128,31 @@ class MyProfileActivity : BaseActivity() {
 
         userName?.setText(user.name)
         userEmail?.setText(user.email)
-        if (user.mobile.toInt() != 0) {
-            userMobile?.setText(user.mobile.toInt())
+        userMobile?.setText(user.mobile)
+    }
+
+    private fun updateUserProfileData() {
+        val userHashMap = HashMap<String, Any>()
+
+        if (mProfileImageBase64 != null) {
+            userHashMap[Constants.IMAGE] = mProfileImageBase64!!
         }
+
+        if (binding?.etName?.text.toString() != mUserDetails.name) {
+            userHashMap[Constants.NAME] = binding?.etName?.text.toString()
+        }
+
+        if (binding?.etMobile?.text.toString() != mUserDetails.mobile) {
+            userHashMap[Constants.MOBILE] = binding?.etMobile?.text.toString()
+        }
+
+        FirestoreClass().updateUserProfileData(this, userHashMap)
+    }
+
+    fun profileUpdateSuccess() {
+        hideProgressDialog()
+
+        setResult(Activity.RESULT_OK)
+        finish()
     }
 }
