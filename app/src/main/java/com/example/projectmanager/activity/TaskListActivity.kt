@@ -19,6 +19,7 @@ import com.example.projectmanager.util.Constants
 class TaskListActivity : BaseActivity() {
 
     var binding: ActivityTaskListBinding? = null
+    private lateinit var mBoardDetails: Board
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,13 +42,13 @@ class TaskListActivity : BaseActivity() {
 
     }
 
-    private fun setupActionBar(title: String) {
+    private fun setupActionBar() {
         setSupportActionBar(binding?.toolbarTaskListActivity)
         val actionBar = supportActionBar
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true)
             actionBar.setHomeAsUpIndicator(R.drawable.ic_white_color_back_24dp)
-            actionBar.title = title
+            actionBar.title = mBoardDetails.name
         }
 
         binding?.toolbarTaskListActivity?.setNavigationOnClickListener {
@@ -56,8 +57,9 @@ class TaskListActivity : BaseActivity() {
     }
 
     fun boardDetails(board: Board) {
+        mBoardDetails = board
         hideProgressDialog()
-        setupActionBar(board.name)
+        setupActionBar()
 
         val addTaskList = Task(resources.getString(R.string.add_list))
         board.taskList.add(addTaskList)
@@ -69,5 +71,10 @@ class TaskListActivity : BaseActivity() {
         val adapter = TaskListItemAdapter(this, board.taskList)
         binding?.rvTaskList?.adapter = adapter
 
+    }
+
+    fun addUpdateTaskListSuccess() {
+
+        FirestoreClass().getBoardDetails(this, mBoardDetails.documentId)
     }
 }

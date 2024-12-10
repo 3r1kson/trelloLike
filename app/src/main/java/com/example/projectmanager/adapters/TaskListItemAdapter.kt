@@ -6,11 +6,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager.LayoutParams
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.projectmanager.R
+import com.example.projectmanager.firebase.FirestoreClass
 import com.example.projectmanager.models.Task
+import org.w3c.dom.Text
 
 class TaskListItemAdapter(private val context: Context, private var list: ArrayList<Task>)
     : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -41,8 +44,26 @@ class TaskListItemAdapter(private val context: Context, private var list: ArrayL
                 holder.itemView.findViewById<TextView>(R.id.tv_add_task_list).visibility = View.GONE
                 holder.itemView.findViewById<LinearLayout>(R.id.ll_task_item).visibility = View.VISIBLE
             }
+
+            holder.itemView.findViewById<TextView>(R.id.tv_task_list_title).text = model.title
+            holder.itemView.findViewById<TextView>(R.id.tv_add_task_list).setOnClickListener {
+                holder.itemView.findViewById<TextView>(R.id.tv_add_task_list).visibility = View.GONE
+                holder.itemView.findViewById<LinearLayout>(R.id.cv_add_task_list_name).visibility = View.VISIBLE
+            }
+
+            holder.itemView.findViewById<LinearLayout>(R.id.ib_close_list_name).setOnClickListener {
+                holder.itemView.findViewById<TextView>(R.id.tv_add_task_list).visibility = View.VISIBLE
+                holder.itemView.findViewById<LinearLayout>(R.id.cv_add_task_list_name).visibility = View.GONE
+            }
+
+            holder.itemView.findViewById<ImageButton>(R.id.ib_done_list_name).setOnClickListener {
+                // TODO
+            }
+
+
         }
     }
+
 
     private fun Int.toDp(): Int = (this/ Resources.getSystem().displayMetrics.density).toInt()
 
