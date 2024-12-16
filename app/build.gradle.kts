@@ -49,6 +49,7 @@ dependencies {
     implementation("de.hdodenhof:circleimageview:3.1.0")
     implementation("com.github.bumptech.glide:glide:4.11.0")
     implementation("com.github.bumptech.glide:compiler:4.11.0")
+    implementation("com.google.firebase:firebase-messaging:20.1.1")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)

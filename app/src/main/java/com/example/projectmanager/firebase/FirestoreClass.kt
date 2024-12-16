@@ -4,8 +4,10 @@ import android.app.Activity
 import android.util.Log
 import android.widget.Toast
 import com.example.projectmanager.activity.BaseActivity
+import com.example.projectmanager.activity.CardDetailsActivity
 import com.example.projectmanager.activity.CreateBoardActivity
 import com.example.projectmanager.activity.MainActivity
+import com.example.projectmanager.activity.MemberActivity
 import com.example.projectmanager.activity.MyProfileActivity
 import com.example.projectmanager.activity.SignInActivity
 import com.example.projectmanager.activity.SignUpActivity
@@ -78,7 +80,7 @@ class FirestoreClass : BaseActivity() {
             }
     }
 
-    fun addUpdateTaskList(activity: TaskListActivity, board: Board) {
+    fun addUpdateTaskList(activity: Activity, board: Board) {
         val taskListHashMap = HashMap<String, Any>()
         taskListHashMap[Constants.TASK_LIST] = board.taskList
 
@@ -87,23 +89,40 @@ class FirestoreClass : BaseActivity() {
             .update(taskListHashMap)
             .addOnSuccessListener {
                 Log.e(activity.javaClass.simpleName, "Task List updated Successfully")
-                activity.addUpdateTaskListSuccess()
+                if (activity is TaskListActivity) {
+                    activity.addUpdateTaskListSuccess()
+                } else if (activity is CardDetailsActivity){
+                    activity.addUpdateTaskListSuccess()
+                }
             }.addOnFailureListener { e->
-                activity.hideProgressDialog()
+                if (activity is TaskListActivity) {
+                    activity.hideProgressDialog()
+                } else if (activity is CardDetailsActivity) {
+                    activity.hideProgressDialog()
+                }
+
                 Log.e(activity.javaClass.simpleName, "Error while creating board", e)
 
             }
     }
 
-    fun updateUserProfileData(activity: MyProfileActivity, userHashMap: HashMap<String, Any>) {
+    fun updateUserProfileData(activity: Activity, userHashMap: HashMap<String, Any>) {
         mFireStore.collection(Constants.USERS)
             .document(getCurrentUserId())
             .update(userHashMap)
             .addOnSuccessListener {
                 Toast.makeText(activity, "Profile updated successfully!", Toast.LENGTH_SHORT).show()
-                activity.profileUpdateSuccess()
-            }.addOnFailureListener {
-                e -> activity.hideProgressDialog()
+                when(activity) {
+                    is MainActivity -> activity.tokenUpdateSuccess()
+
+                    is MyProfileActivity -> activity.profileUpdateSuccess()
+                }
+            }.addOnFailureListener { e ->
+                when(activity) {
+                    is MainActivity -> activity.hideProgressDialog()
+
+                    is MyProfileActivity -> activity.hideProgressDialog()
+                }
                 Log.e(activity.javaClass.simpleName, "Error while creating a board.", e)
                 Toast.makeText(activity, "Profile update error!", Toast.LENGTH_SHORT).show()
             }
@@ -172,6 +191,72 @@ class FirestoreClass : BaseActivity() {
                 activity.hideProgressDialog()
                 Log.e(activity.javaClass.simpleName, "Error while creating board $e")
 
+            }
+    }
+
+    fun getAssignedMemberListDetails(activity: Activity, assignedTo: ArrayList<String>) {
+        mFireStore.collection(Constants.USERS)
+            .whereIn(Constants.ID, assignedTo)
+            .get()
+            .addOnSuccessListener { document ->
+                val usersList: ArrayList<User> = ArrayList()
+
+                for (i in document) {
+                    val user = i.toObject(User::class.java)
+                    usersList.add(user)
+                }
+
+                if (activity is MemberActivity) {
+                    activity.setupMembersList(usersList)
+                } else if (activity is TaskListActivity) {
+                    activity.boardMembersDetailsList(usersList)
+                }
+
+            }.addOnFailureListener { e ->
+                if (activity is MemberActivity) {
+                    activity.hideProgressDialog()
+                } else if (activity is TaskListActivity) {
+                    activity.hideProgressDialog()
+                }
+                Log.e(activity.javaClass.simpleName, "Error while creating a board", e)
+                Toast.makeText(this, "Error while assigning Members $e", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    fun getMemberDetails(activity: MemberActivity, email: String) {
+        mFireStore.collection(Constants.USERS)
+            .whereEqualTo(Constants.EMAIL, email)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document.documents.size > 0) {
+                    val user = document.documents[0].toObject(User::class.java)!!
+                    activity.memberDetails(user)
+                } else {
+                    activity.hideProgressDialog()
+                    activity.showErrorSnackBar("No such member found")
+                }
+
+            }.addOnFailureListener { e ->
+                activity.hideProgressDialog()
+                Log.e(activity.javaClass.simpleName, "Error while getting user details", e)
+                Toast.makeText(this, "Error while getting user details $e", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    fun assignMemberToBoard(activity: MemberActivity, board: Board, user: User) {
+
+        val assignedToHashMap = HashMap<String, Any>()
+        assignedToHashMap[Constants.ASSIGNED_TO] = board.assignedTo
+
+        mFireStore.collection(Constants.BOARDS)
+            .document(board.documentId)
+            .update(assignedToHashMap)
+            .addOnSuccessListener {
+                activity.memberAssignSucces(user)
+            }.addOnFailureListener { e ->
+                activity.hideProgressDialog()
+                Log.e(activity.javaClass.simpleName, "Error while creating a board", e)
+                Toast.makeText(this, "Error while creating a board $e", Toast.LENGTH_LONG).show()
             }
     }
 

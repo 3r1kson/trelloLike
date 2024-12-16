@@ -3,14 +3,16 @@ package com.example.projectmanager.models
 import android.os.Parcel
 import android.os.Parcelable
 
-class Task(
+data class Task(
     var title: String = "",
     val createdBy: String = "",
+    var cards: ArrayList<Card> = ArrayList()
 ): Parcelable {
 
     constructor(parcel: Parcel) : this(
         parcel.readString()!!,
-        parcel.readString()!!
+        parcel.readString()!!,
+        parcel.createTypedArrayList(Card.CREATOR)!!
     )
 
     override fun describeContents() = 0
@@ -18,6 +20,7 @@ class Task(
     override fun writeToParcel(dest: Parcel, flags: Int) = with(dest) {
         writeString(title)
         writeString(createdBy)
+        writeTypedList(cards)
     }
 
     companion object CREATOR : Parcelable.Creator<Task> {

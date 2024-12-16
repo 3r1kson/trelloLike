@@ -1,7 +1,9 @@
 package com.example.projectmanager.activity
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.view.MenuItem
@@ -10,6 +12,7 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.Toolbar
+import androidx.collection.intSetOf
 import androidx.core.view.GravityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -23,6 +26,8 @@ import com.example.projectmanager.models.User
 import com.example.projectmanager.util.Constants
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.iid.FirebaseInstanceId
 
 class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -32,6 +37,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     }
 
     private lateinit var mUserName: String
+    private lateinit var mSharedPreferences: SharedPreferences
 
     var binding: ActivityMainBinding? = null
 
@@ -55,6 +61,19 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             startActivityForResult(intent, CREATE_BOARD_REQUEST_CODE)
         }
 
+        mSharedPreferences = this.getSharedPreferences(Constants.PROJECTMANAGER_PREFERENCES, Context.MODE_PRIVATE)
+
+        val tokenUpdated = mSharedPreferences.getBoolean(Constants.FCM_TOKEN_UPDATED, false)
+
+        if (tokenUpdated) {
+            showProgressDialog(resources.getString(R.string.please_wait))
+            FirestoreClass().loadUserData(this, true)
+        } else {
+            FirebaseInstanceId.getInstance()
+                .instanceId.addOnSuccessListener(this@MainActivity) { instanceIdResult ->
+                updateFCMToken(instanceIdResult.token)
+            }
+        }
         setupActionBar()
         FirestoreClass().loadUserData(this, true)
     }
@@ -133,7 +152,11 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
                 startActivityForResult(Intent(this, MyProfileActivity::class.java), MY_PROFILE_REQUEST_CODE)
             }
             R.id.nav_sign_out -> {
-                Log.d("Navigation", "Sign Out selected")
+                FirebaseAuth.getInstance().signOut()
+
+                mSharedPreferences.edit().clear().apply()
+
+
                 val intent = Intent(this@MainActivity, IntroActivity::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
                 startActivity(intent)
@@ -146,6 +169,7 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
     }
 
     fun updateNavigationUserDetails(user: User, readBoardsList: Boolean) {
+        hideProgressDialog()
         val headerView = binding?.navView?.getHeaderView(0)
         val userImage: ImageView? = headerView?.findViewById(R.id.nav_user_image)
         val userName: TextView? = headerView?.findViewById(R.id.tv_username)
@@ -165,5 +189,21 @@ class MainActivity : BaseActivity(), NavigationView.OnNavigationItemSelectedList
             showProgressDialog(resources.getString(R.string.please_wait))
             FirestoreClass().getBoardsList(this)
         }
+    }
+
+    fun tokenUpdateSuccess() {
+        hideProgressDialog()
+        val editor: SharedPreferences.Editor = mSharedPreferences.edit()
+        editor.putBoolean(Constants.FCM_TOKEN_UPDATED, true)
+        editor.apply()
+        showProgressDialog(resources.getString(R.string.please_wait))
+        FirestoreClass().loadUserData(this, true)
+    }
+
+    private fun updateFCMToken(token: String) {
+        val userHashMap = HashMap<String, Any>()
+        userHashMap[Constants.FCM_TOKEN]
+        showProgressDialog(resources.getString(R.string.please_wait))
+        FirestoreClass().updateUserProfileData(this, userHashMap)
     }
 }
